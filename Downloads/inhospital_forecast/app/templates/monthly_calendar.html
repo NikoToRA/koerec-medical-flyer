@@ -1,0 +1,184 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="calendar-page">
+    <div class="calendar-controls">
+        <h2>月間混雑予想カレンダー</h2>
+        <div class="date-selector">
+            <select id="month-selector" class="form-control">
+                {% for i in range(1, 13) %}
+                <option value="{{ i }}" {% if i == current_month %}selected{% endif %}>{{ i }}月</option>
+                {% endfor %}
+            </select>
+            <select id="year-selector" class="form-control">
+                {% for year in range(2024, 2026) %}
+                <option value="{{ year }}" {% if year == current_year %}selected{% endif %}>{{ year }}年</option>
+                {% endfor %}
+            </select>
+        </div>
+    </div>
+
+    <div class="hospital-params">
+        <h3>病院平均パラメータ</h3>
+        <div class="params-grid">
+            <div class="param-group">
+                <label>平均日総外来患者数</label>
+                <input type="number" id="avg_total_outpatient" class="form-control" value="600">
+            </div>
+            <div class="param-group">
+                <label>平均日紹介外来患者数</label>
+                <input type="number" id="avg_intro_outpatient" class="form-control" value="30">
+            </div>
+            <div class="param-group">
+                <label>平均日救急搬送患者数</label>
+                <input type="number" id="avg_er_patients" class="form-control" value="20">
+            </div>
+            <div class="param-group">
+                <label>平均現在の病床利用数</label>
+                <input type="number" id="avg_bed_count" class="form-control" value="300">
+            </div>
+        </div>
+        <button id="update-calendar" class="btn">カレンダーを表示</button>
+    </div>
+
+    <div class="calendar-container">
+        <div class="calendar-legend">
+            <div class="legend-item">
+                <span class="legend-color prediction-high"></span>
+                <span>非常に多い</span>
+            </div>
+            <div class="legend-item">
+                <span class="legend-color prediction-medium-high"></span>
+                <span>やや多い</span>
+            </div>
+            <div class="legend-item">
+                <span class="legend-color prediction-medium-low"></span>
+                <span>やや少ない</span>
+            </div>
+            <div class="legend-item">
+                <span class="legend-color prediction-low"></span>
+                <span>少ない</span>
+            </div>
+            <div class="legend-item">
+                <span class="legend-color holiday"></span>
+                <span>祝日</span>
+            </div>
+        </div>
+
+        <div class="calendar">
+            <div class="calendar-header">日</div>
+            <div class="calendar-header">月</div>
+            <div class="calendar-header">火</div>
+            <div class="calendar-header">水</div>
+            <div class="calendar-header">木</div>
+            <div class="calendar-header">金</div>
+            <div class="calendar-header">土</div>
+            <div id="calendar-grid" class="calendar-grid"></div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const updateButton = document.getElementById('update-calendar');
+    const monthSelector = document.getElementById('month-selector');
+    const yearSelector = document.getElementById('year-selector');
+    
+    // 初期表示
+    updateCalendar();
+    
+    updateButton.addEventListener('click', updateCalendar);
+    
+    async function updateCalendar() {
+        const params = {
+            month: monthSelector.value,
+            year: yearSelector.value,
+            avg_total_outpatient: document.getElementById('avg_total_outpatient').value,
+            avg_intro_outpatient: document.getElementById('avg_intro_outpatient').value,
+            avg_er_patients: document.getElementById('avg_er_patients').value,
+            avg_bed_count: document.getElementById('avg_bed_count').value
+        };
+
+        try {
+            const response = await fetch("{{ url_for('main.get_monthly_predictions') }}", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(params)
+            });
+            
+            if (response.ok) {
+                const data = await response.json();
+                if (data.status === 'success') {
+                    renderCalendar(data.predictions);
+                } else {
+                    alert('カレンダーの更新に失敗しました: ' + data.message);
+                }
+            } else {
+                alert('カレンダーの更新に失敗しました');
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            alert('エラーが発生しました');
+        }
+    }
+
+    function renderCalendar(predictions) {
+        const calendarGrid = document.getElementById('calendar-grid');
+        calendarGrid.innerHTML = '';
+        
+        // 日付セルを作成
+        predictions.forEach(day => {
+            const dayElement = document.createElement('div');
+            dayElement.className = `calendar-day prediction-${day.level}`;
+            
+            // 土日の場合はクラスを追加
+            if (day.weekday === 6) { // 土曜日
+                dayElement.classList.add('saturday');
+            } else if (day.weekday === 0) { // 日曜日
+                dayElement.classList.add('sunday');
+            }
+            
+            // 前月・翌月の日付の場合
+            if (day.level === 'prev-month' || day.level === 'next-month') {
+                dayElement.classList.add('other-month');
+            }
+            
+            let content = `<div class="day-number">${day.date}</div>`;
+            
+            if (day.value !== null) {
+                let predictionText;
+                switch(day.level) {
+                    case 'high':
+                        predictionText = '非常に多い';
+                        break;
+                    case 'medium-high':
+                        predictionText = 'やや多い';
+                        break;
+                    case 'medium-low':
+                        predictionText = 'やや少ない';
+                        break;
+                    case 'low':
+                        predictionText = '少ない';
+                        break;
+                    default:
+                        predictionText = '';
+                }
+                content += `<div class="prediction-text">${predictionText}</div>`;
+                
+                if (day.is_holiday) {
+                    dayElement.classList.add('holiday');
+                    content += `<div class="holiday-mark">祝</div>`;
+                }
+            }
+            
+            dayElement.innerHTML = content;
+            calendarGrid.appendChild(dayElement);
+        });
+    }
+});
+</script>
+{% endblock %} 
