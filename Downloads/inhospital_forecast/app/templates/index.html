@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+
+{% block head %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h1 class="text-center mb-4">入院患者数予測システム</h1>
+    
+    <div class="prediction-form">
+        <div class="form-group">
+            <label for="prediction-date">予測日付</label>
+            <input type="date" id="prediction-date" class="form-control" required>
+        </div>
+
+        <div class="form-group">
+            <label for="total-outpatient">平均日総外来患者数</label>
+            <input type="number" id="total-outpatient" class="form-control" value="600" required>
+        </div>
+
+        <div class="form-group">
+            <label for="intro-outpatient">平均日紹介外来患者数</label>
+            <input type="number" id="intro-outpatient" class="form-control" value="30" required>
+        </div>
+
+        <div class="form-group">
+            <label for="er-patients">平均日救急搬送患者数</label>
+            <input type="number" id="er-patients" class="form-control" value="20" required>
+        </div>
+
+        <div class="form-group">
+            <label for="bed-count">平均現在の病床利用数</label>
+            <input type="number" id="bed-count" class="form-control" value="300" required>
+        </div>
+
+        <button id="predict-button" class="btn btn-primary">予測実行</button>
+    </div>
+
+    <div id="prediction-result" class="mt-4" style="display: none;">
+        <h3>予測結果</h3>
+        <div class="result-content"></div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="{{ url_for('static', filename='js/main.js') }}"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // 今日の日付をデフォルトとして設定
+    const today = new Date();
+    const dateInput = document.getElementById('prediction-date');
+    dateInput.value = today.toISOString().split('T')[0];
+    
+    // 予測ボタンのクリックイベント
+    document.getElementById('predict-button').addEventListener('click', async function() {
+        const formData = new FormData();
+        formData.append('date', document.getElementById('prediction-date').value);
+        formData.append('total_outpatient', document.getElementById('total-outpatient').value);
+        formData.append('intro_outpatient', document.getElementById('intro-outpatient').value);
+        formData.append('er_patients', document.getElementById('er-patients').value);
+        formData.append('bed_count', document.getElementById('bed-count').value);
+
+        try {
+            const response = await fetch("{{ url_for('main.predict') }}", {
+                method: 'POST',
+                body: formData
+            });
+
+            const result = await response.json();
+            const resultDiv = document.getElementById('prediction-result');
+            const resultContent = resultDiv.querySelector('.result-content');
+
+            if (result.status === 'success') {
+                resultContent.innerHTML = `
+                    <div class="alert alert-success">
+                        <h4>予測入院患者数</h4>
+                        <p class="prediction-value">${result.prediction.toFixed(1)}人</p>
+                    </div>
+                `;
+            } else {
+                resultContent.innerHTML = `
+                    <div class="alert alert-danger">
+                        <h4>エラー</h4>
+                        <p>${result.message}</p>
+                    </div>
+                `;
+            }
+
+            resultDiv.style.display = 'block';
+
+        } catch (error) {
+            console.error('Error:', error);
+            alert('予測の実行中にエラーが発生しました。');
+        }
+    });
+});
+</script>
+{% endblock %} 
