@@ -297,19 +297,19 @@ main {
 }
 
 .prediction-high .prediction-text {
-    color: #b71c1c;  /* より濃い赤 */
-}
-
-.prediction-medium-high .prediction-text {
     color: #d32f2f;  /* 濃い赤 */
 }
 
+.prediction-medium-high .prediction-text {
+    color: #e65100;  /* 濃いオレンジ */
+}
+
 .prediction-medium-low .prediction-text {
-    color: #1976d2;  /* 濃い青 */
+    color: #fbc02d;  /* 濃い黄色 */
 }
 
 .prediction-low .prediction-text {
-    color: #0d47a1;  /* より濃い青 */
+    color: #2e7d32;  /* 濃い緑 */
 }
 
 .holiday-mark {
@@ -325,19 +325,19 @@ main {
 
 /* ヒートマップの色分け */
 .prediction-high {
-    background-color: #ef5350;  /* 濃い赤 */
+    background-color: #ff5252;  /* 赤 */
 }
 
 .prediction-medium-high {
-    background-color: #ff8a65;  /* 薄い赤 */
+    background-color: #ff9800;  /* オレンジ */
 }
 
 .prediction-medium-low {
-    background-color: #90caf9;  /* 薄い青 */
+    background-color: #ffd600;  /* 黄色 */
 }
 
 .prediction-low {
-    background-color: #42a5f5;  /* 濃い青 */
+    background-color: #4caf50;  /* 緑 */
 }
 
 .prediction-prev-month,
