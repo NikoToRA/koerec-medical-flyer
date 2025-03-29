@@ -5,14 +5,14 @@
     <div class="calendar-controls">
         <h2>月間混雑予想カレンダー</h2>
         <div class="date-selector">
-            <select id="month-selector" class="form-control">
-                {% for i in range(1, 13) %}
-                <option value="{{ i }}" {% if i == current_month %}selected{% endif %}>{{ i }}月</option>
-                {% endfor %}
-            </select>
             <select id="year-selector" class="form-control">
                 {% for year in range(2024, 2026) %}
-                <option value="{{ year }}" {% if year == current_year %}selected{% endif %}>{{ year }}年</option>
+                <option value="{{ year }}">{{ year }}年</option>
+                {% endfor %}
+            </select>
+            <select id="month-selector" class="form-control">
+                {% for i in range(1, 13) %}
+                <option value="{{ i }}">{{ i }}月</option>
                 {% endfor %}
             </select>
         </div>
@@ -86,10 +86,23 @@ document.addEventListener('DOMContentLoaded', function() {
     const monthSelector = document.getElementById('month-selector');
     const yearSelector = document.getElementById('year-selector');
     
+    // 今日の日付を取得
+    const today = new Date();
+    const currentYear = today.getFullYear();
+    const currentMonth = today.getMonth() + 1; // JavaScriptの月は0から始まるため+1
+
+    // 年と月のセレクターを今日の日付に設定
+    yearSelector.value = currentYear;
+    monthSelector.value = currentMonth;
+    
     // 初期表示
     updateCalendar();
     
     updateButton.addEventListener('click', updateCalendar);
+    
+    // 年または月が変更されたときにもカレンダーを更新
+    yearSelector.addEventListener('change', updateCalendar);
+    monthSelector.addEventListener('change', updateCalendar);
     
     async function updateCalendar() {
         const params = {
